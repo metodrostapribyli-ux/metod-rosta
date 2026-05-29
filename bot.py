@@ -2,9 +2,8 @@ import os
 import json
 import anthropic
 import gspread
-import threading
 import asyncio
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from aiohttp import web
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 from google.oauth2.service_account import Credentials
@@ -31,19 +30,6 @@ CATEGORIES = """
 Расходы по ВБ и ОЗОН, ПО и IT, Прочие расходы, Помещения, Банковские услуги,
 Расходы ниже опер.прибыли, Капитализация
 """
-
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
-    def log_message(self, *args):
-        pass
-
-def run_health_server():
-    port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), HealthHandler)
-    server.serve_forever()
 
 def get_sheet():
     creds_dict = json.loads(GOOGLE_CREDS)
@@ -147,7 +133,18 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "и я разнесу операции по статьям в таблицу управленческого учёта."
     )
 
+async def health(request):
+    return web.Response(text="OK")
+
 async def main():
+    port = int(os.environ.get("PORT", 8080))
+    web_app = web.Application()
+    web_app.router.add_get("/", health)
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
     app.add_handler(MessageHandler(filters.TEXT, handle_text))
@@ -157,5 +154,4 @@ async def main():
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    threading.Thread(target=run_health_server, daemon=True).start()
     asyncio.run(main())
