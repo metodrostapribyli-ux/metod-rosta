@@ -148,7 +148,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def main():
-    threading.Thread(target=run_health_server, daemon=True).start()
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
     app.add_handler(MessageHandler(filters.TEXT, handle_text))
@@ -158,4 +157,5 @@ async def main():
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
+    threading.Thread(target=run_health_server, daemon=True).start()
     asyncio.run(main())
