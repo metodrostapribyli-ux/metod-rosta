@@ -131,8 +131,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "и я разнесу операции по статьям в таблицу управленческого учёта."
     )
 
+import asyncio
+
 if __name__ == "__main__":
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
-    app.add_handler(MessageHandler(filters.TEXT, handle_text))
+    async def main():
+        app = Application.builder().token(TELEGRAM_TOKEN).build()
+        app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
+        app.add_handler(MessageHandler(filters.TEXT, handle_text))
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling()
+        await asyncio.Event().wait()
+
+    asyncio.run(main())
     app.run_polling()
